@@ -1,0 +1,18 @@
+{
+  "name": "ls",
+  "version": "1.0.0",
+  "description": "f",
+  "main": "f",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "f"
+  },
+  "repository": {
+    "type": "git",
+    "url": "f"
+  },
+  "author": "",
+  "license": "ISC"
+}
