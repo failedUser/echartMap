@@ -13,7 +13,7 @@
 <body>
     <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
     <div class="container" style="display:flex;justify-content:flex-start;flex-direction:row;align-items:flex-start;overflow: hidden;">
-        <div style="flex:1;">
+        <div class="mapContainer" style="flex:1;">
             <div id="main" style="width: 1000px;height:800px;"></div>
         </div>
         <div style="width: 200px">
@@ -33,6 +33,20 @@
                 <span>大小<span>
                 <input type="range" value="10" max="50" min="1" onchange="onRangeChange(value)" id="excel-file">
             </div>
+
+            <div>
+                <span>底部蓝色标记计算基准值<span>
+                    <input type="text" value="4000" oninput="onChangeBaseRange(value)">
+            </div>
+            <span style="color:red">气泡最大值一定要比最小值大</span>
+            <div>
+                <span>计算气泡最大值<span>
+                        <input type="text" value="50" oninput="onChangeMax(value)">
+            </div>
+            <div>
+                <span>计算气泡最小值<span>
+                        <input type="text" value="1" oninput="onChangeMin(value)">
+            </div>
             <div>
                 <span>top值<span>
                 <select onchange="changeTop(value)">
@@ -41,6 +55,16 @@
                     <option value="10">10</option>
                 </select>    
             <div>
+                <div>
+                    <span>改变颜色的城市<span>
+                            <input type="text" onchange="onInputCity(value)" >
+                </div>
+            <div>
+                <span>改变颜色的城市颜色<span>
+                        <input type="text" onchange="onInputCityColor(value)" >
+            </div>
+            
+            <button class="submit">修改颜色</button>
         </div>
     </div>
 
@@ -146,7 +170,7 @@ var myChart = echarts.init(document.getElementById('main'));
     //     },
     // ];
 
-    var data  = [
+    var __data  = [
                 { name: '北京', selected: false, value: 1, areaColor: '#c8e7e7' },
                 { name: '天津', selected: false, value: 2, areaColor: '#a0d8ed' },
                 { name: '上海', selected: false, value: 3, areaColor: '#dfd3e8' },
@@ -155,7 +179,7 @@ var myChart = echarts.init(document.getElementById('main'));
                 { name: '河南', selected: false, value: 6, areaColor: '#c8e7e7' },
                 { name: '云南', selected: false, value: 7, areaColor: '#c8e7e7' },
                 { name: '辽宁', selected: false, value: 8, areaColor: '#c8e7e7' },
-                { name: '黑龙江', selected: false, value: 9, areaColor: '#c8e7e7' },
+                { name: '黑龙江', selected: false, value: 9, areaColor: '#1a1a1a' },
                 { name: '湖南', selected: false, value: 10, areaColor: '#c8e7e7' },
                 { name: '安徽', selected: false, value: 11, areaColor: '#c8e7e7' },
                 { name: '山东', selected: false, value: 12, areaColor: '#c8e7e7' },
@@ -182,11 +206,12 @@ var myChart = echarts.init(document.getElementById('main'));
                 { name: '香港', selected: false, value: 33, areaColor: '#c8e7e7' },
                 { name: '澳门', selected: false, value: 34, areaColor: '#c8e7e7' }];
 
-    var max = 100000,
-        min = 900; // todo 
+    var data = [].concat(__data);
+    var max = 50,
+        min = 1; // todo 
     var maxSize4Pin = 120,
         minSize4Pin = 20;
-
+    var baseRange =  4000;
     var convertData = function(data) {
         var res = [];
         for (var i = 0; i < data.length; i++) {
@@ -202,6 +227,7 @@ var myChart = echarts.init(document.getElementById('main'));
     };
 
     var getareaColor = function(data) {
+        console.log(data);
         let result = [];
         data.map(el => {
             result.push({
@@ -314,7 +340,7 @@ var myChart = echarts.init(document.getElementById('main'));
                 coordinateSystem: 'geo',
                 data: convertData(data),
                 symbolSize: function(val) {
-                    let __size = val[2] / 4000;
+                    let __size = val[2] / baseRange;
                     if (__size < YELLOW_SIZE_MIN) {
                         __size = YELLOW_SIZE_MIN;
                     }
@@ -354,17 +380,34 @@ var myChart = echarts.init(document.getElementById('main'));
                 coordinateSystem: 'geo',
                 symbol: 'pin',
                 symbolSize: function(val) {
-                    var a = (maxSize4Pin - minSize4Pin) / (max - min);
-                    var b = minSize4Pin - a * min;
-                    b = maxSize4Pin - a * max;
-                    let __size = a * val[2] + b;
-                    if (__size < BUBBLE_SIZE_MIN) {
-                        __size = BUBBLE_SIZE_MIN;
+                    let _val = val[2];
+                    if (_val < min) {
+                        _val = min;
                     }
-                    if (__size > BUBBLE_SIZE_MAX) {
-                        __size = BUBBLE_SIZE_MAX;
+                    if (_val > max) {
+                        _val = max;
                     }
-                    return __size;
+                    let unitCount = (max - min) / (BUBBLE_SIZE_MAX - BUBBLE_SIZE_MIN); //计算尺寸每增长1 需要多少数量
+                    let diff = _val - min;
+                    let diffSize = diff / unitCount;
+                    let size = diffSize + BUBBLE_SIZE_MIN;
+                    return size;
+                    //maxSize4Pin - minSize4Pin == 100
+                    // max - min = 999100;
+                    // a = 1/9991
+                    // 120 - 1/9991 * 900 == b
+                    // 
+                    // var a = (maxSize4Pin - minSize4Pin) / (max - min);
+                    // var b = minSize4Pin - a * min;
+                    // b = maxSize4Pin - a * max;
+                    // let __size = a * val[2] + b;
+                    // if (__size < BUBBLE_SIZE_MIN) {
+                    //     __size = BUBBLE_SIZE_MIN;
+                    // }
+                    // if (__size > BUBBLE_SIZE_MAX) {
+                    //     __size = BUBBLE_SIZE_MAX;
+                    // }
+                    // return __size;
                 },
                 label: {
                     normal: {
@@ -446,6 +489,14 @@ var myChart = echarts.init(document.getElementById('main'));
                 }).slice(0, value));
         myChart.setOption(option);
     }
+    let onChangeMax = function(value) {
+        max = value;
+        myChart.setOption(option);
+    }
+    let onChangeMin = function (value) {
+        min = value;
+        myChart.setOption(option);
+    }
     let onRangeChange = function(value) {
          option.series[2].symbolSize = function(val) {
                      var a = (maxSize4Pin - minSize4Pin) / (max - min);
@@ -462,6 +513,49 @@ var myChart = echarts.init(document.getElementById('main'));
                 },
          myChart.setOption(option);
     }
+
+    let onChangeBaseRange = function(value) {
+        console.log('valude', value);
+        this.baseRange = value;
+        myChart.setOption(option);
+    }
+
+    
+    var city = '';
+    var cityColor = '';
+    let onInputCity = function(value) {
+        city = value
+    }
+
+    let onInputCityColor = function(value) {
+        cityColor = value;
+    }
+    let changeCityColor = function() {
+        console.log('点击提交');
+    }
+    $('.submit').on('click', '', function() {
+        if (!city) {
+            alert('请输入城市');
+            return false;
+        }
+        if (!cityColor || cityColor.length !== 7) {
+            alert('请输入正确的色号');
+        }
+        let _index = null;
+        let newData = [].concat(__data);
+        newData.forEach((el, index) => {
+            if (city == el.name) {
+                _index = index;
+            }
+        });
+        if (_index >= 0) {
+           newData[_index].areaColor = cityColor;
+           option.geo.regions = getareaColor(newData);
+            myChart.setOption(option);
+        } else {
+            alert('请输入正确的城市');
+        }
+    });
     const parse = function(list) {
         let countKey = '值';
         let areaKey = '区域';
